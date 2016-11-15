@@ -63,7 +63,7 @@ NS_INLINE BOOL typesCompatible(const char *a, const char *b) {
 {
 	if (!signatureA || !signatureB) return NO;
 	if ([signatureA isEqual:signatureB]) return YES;
-	if (!typesCompatible(signatureA.methodReturnType, signatureB.methodReturnType)) return NO;
+	if (signatureA.methodReturnType[0] != signatureB.methodReturnType[0]) return NO;
 
 	NSMethodSignature *methodSignature = nil, *blockSignature = nil;
 	if (signatureA.numberOfArguments > signatureB.numberOfArguments) {
@@ -78,12 +78,36 @@ NS_INLINE BOOL typesCompatible(const char *a, const char *b) {
 
 	NSUInteger numberOfArguments = methodSignature.numberOfArguments;
 	for (NSUInteger i = 2; i < numberOfArguments; i++) {
-        if (!typesCompatible([methodSignature getArgumentTypeAtIndex:i], [blockSignature getArgumentTypeAtIndex:i - 1])) {
+		if (![self isEqualArgumentType:[methodSignature getArgumentTypeAtIndex:i][0] andType:[blockSignature getArgumentTypeAtIndex:i - 1][0]])
 			return NO;
-        }
 	}
 
 	return YES;
+}
+    
++ (BOOL)isInt:(char)type {
+    return strcmp(@encode(short), &type) ||
+        strcmp(@encode(int), &type) ||
+        strcmp(@encode(long), &type) ||
+        strcmp(@encode(long long), &type);
+}
+ 
++ (BOOL)isUnsignedInt:(char)type {
+    return strcmp(@encode(unsigned short), &type) ||
+        strcmp(@encode(unsigned int), &type) ||
+        strcmp(@encode(unsigned long), &type) ||
+        strcmp(@encode(unsigned long long), &type);
+}
+    
++ (BOOL)isEqualArgumentType:(char)type1 andType:(char)type2
+{
+    if ([self isInt:type1] && [self isInt:type2]) {
+        return YES;
+    } else if ([self isUnsignedInt:type1] && [self isUnsignedInt:type2]) {
+        return YES;
+    } else {
+        return type1 == type2;
+    }
 }
 
 /** Inspects the given block literal and returns a compatible type signature.
